@@ -1,3 +1,8 @@
+/* 
+Canal ThingSpeak para Processamento dos Dados
+https://thingspeak.mathworks.com/channels/3060723/private_show
+*/
+
 #include <WiFi.h>
 #include <HTTPClient.h>
 

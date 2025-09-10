@@ -82,7 +82,7 @@ Além disso, os dados de cada sensor são enviados em tempo real para o **ThingS
 ---
 
 ## 🎥 Vídeo de Demonstração
-👉 [Assista ao vídeo aqui](COLOQUE_O_LINK_DO_VIDEO_AQUI)
+👉 [Assista ao vídeo aqui](https://youtu.be/JevcnQfe5Do)
 
 ---
 
