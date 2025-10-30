@@ -1,119 +1,105 @@
-/* 
-Canal ThingSpeak para Processamento dos Dados
-https://thingspeak.mathworks.com/channels/3060723/private_show
-*/
-
 #include <WiFi.h>
-#include <HTTPClient.h>
+#include <PubSubClient.h>
 
-// Pinos dos dois sensores ultrassônicos
-#define TRIG1 5   // Sensor 1 (direita)
-#define ECHO1 18
-#define TRIG2 19  // Sensor 2 (esquerda)
-#define ECHO2 21
-
-// LED e Buzzer
-#define ALERT_LED_PIN 2
-#define BUZZER_PIN 4
-
-// Wi-Fi e ThingSpeak
-const char* ssid = "Wokwi-GUEST";
+// --- CONFIGURAÇÕES WIFI ---
+const char* ssid = "Wokwi-GUEST";  
 const char* password = "";
-const char* apiKey = "VMJC6RB3I8P7UL88";
-const char* server = "http://api.thingspeak.com";
 
-// Distância limite
-const int DIST_MAX = 400;
+// --- CONFIGURAÇÕES MQTT ---
+const char* mqtt_server = "20.48.230.121";
+const int mqtt_port = 1883;
+const char* mqtt_user = "";  
+const char* mqtt_pass = "";
 
-// Variável para guardar o último sensor detectado
-int ultimoSensor = 0; // 0 = nenhum, 1 = direita, 2 = esquerda
+// --- TÓPICOS MQTT ---
+const char* topic_dist1  = "bola/dist1";
+const char* topic_dist2  = "bola/dist2";
+const char* topic_status = "bola/status";
 
-void setup() {
+// --- PINS ---
+const int trigPin1 = 5;
+const int echoPin1 = 18;
+const int trigPin2 = 19;
+const int echoPin2 = 21;
+
+// --- VARS ---
+WiFiClient espClient;
+PubSubClient client(espClient);
+unsigned long lastPub = 0;
+const unsigned long PUB_INTERVAL = 2000; // a cada 2s
+
+long readDistanceCM(int trigPin, int echoPin) {
+  digitalWrite(trigPin, LOW); delayMicroseconds(2);
+  digitalWrite(trigPin, HIGH); delayMicroseconds(10);
+  digitalWrite(trigPin, LOW);
+  long dur = pulseIn(echoPin, HIGH, 30000);
+  if (dur == 0) return -1;
+  return (long)round(dur * 0.0343 / 2.0);
+}
+
+void setup_wifi() {
   Serial.begin(115200);
-
-  // Pinos dos sensores
-  pinMode(TRIG1, OUTPUT);
-  pinMode(ECHO1, INPUT);
-  pinMode(TRIG2, OUTPUT);
-  pinMode(ECHO2, INPUT);
-
-  // Pinos de saída
-  pinMode(ALERT_LED_PIN, OUTPUT);
-  pinMode(BUZZER_PIN, OUTPUT);
-
-  digitalWrite(ALERT_LED_PIN, LOW);
-  digitalWrite(BUZZER_PIN, LOW);
-
-  // Conexão Wi-Fi
   WiFi.begin(ssid, password);
   Serial.print("Conectando ao WiFi");
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+    delay(500); Serial.print(".");
   }
-  Serial.println(" conectado!");
+  Serial.println("\nWiFi conectado!");
+  Serial.print("IP: "); Serial.println(WiFi.localIP());
 }
 
-long medirDistancia(int trigPin, int echoPin) {
-  digitalWrite(trigPin, LOW);
-  delayMicroseconds(2);
-  digitalWrite(trigPin, HIGH);
-  delayMicroseconds(10);
-  digitalWrite(trigPin, LOW);
-  long duracao = pulseIn(echoPin, HIGH);
-  long distancia = (duracao / 2) * 0.0344;
-  return distancia;
+void reconnect() {
+  while (!client.connected()) {
+    Serial.print("Conectando MQTT...");
+    if (strlen(mqtt_user) == 0) {
+      if (client.connect("ESP32Bola")) Serial.println("Conectado!");
+    } else {
+      if (client.connect("ESP32Bola", mqtt_user, mqtt_pass)) Serial.println("Conectado com auth!");
+    }
+    if (!client.connected()) {
+      Serial.print("Falha, rc=");
+      Serial.print(client.state());
+      Serial.println(" tentando em 5s");
+      delay(5000);
+    }
+  }
+}
+
+void setup() {
+  pinMode(trigPin1, OUTPUT);
+  pinMode(echoPin1, INPUT);
+  pinMode(trigPin2, OUTPUT);
+  pinMode(echoPin2, INPUT);
+
+  setup_wifi();
+  client.setServer(mqtt_server, mqtt_port);
 }
 
 void loop() {
-  if (WiFi.status() == WL_CONNECTED) {
-    // Lê as distâncias dos dois sensores
-    long dist1 = medirDistancia(TRIG1, ECHO1);
-    long dist2 = medirDistancia(TRIG2, ECHO2);
+  if (!client.connected()) reconnect();
+  client.loop();
 
-    Serial.print("Sensor 1 (direita): ");
-    Serial.print(dist1);
-    Serial.print(" cm | Sensor 2 (esquerda): ");
-    Serial.print(dist2);
-    Serial.println(" cm");
+  unsigned long now = millis();
+  if (now - lastPub >= PUB_INTERVAL) {
+    long distance1 = readDistanceCM(trigPin1, echoPin1);
+    long distance2 = readDistanceCM(trigPin2, echoPin2);
 
-    // Detecta bola em cada sensor
-    bool bolaSensor1 = dist1 < DIST_MAX;
-    bool bolaSensor2 = dist2 < DIST_MAX;
+    String statusBola = "Bola em campo";
 
-    // Atualiza o último sensor ativado
-    if (bolaSensor1) ultimoSensor = 1;
-    if (bolaSensor2) ultimoSensor = 2;
+    bool sensor1Detect = (distance1 >= 0 && distance1 < 10);
+    bool sensor2Detect = (distance2 >= 0 && distance2 < 10);
 
-    // Lógica de saída da bola
-    if (ultimoSensor == 2 && !bolaSensor1) {
-      // Saiu pela esquerda → ativa alerta
-      digitalWrite(ALERT_LED_PIN, HIGH);
-      tone(BUZZER_PIN, 1000);
-    } else if (ultimoSensor == 1) {
-      // Voltou pela direita → desativa alerta
-      digitalWrite(ALERT_LED_PIN, LOW);
-      noTone(BUZZER_PIN);
-    }
+    if (sensor2Detect && !sensor1Detect) statusBola = "Bola fora";
+    else if (sensor1Detect && sensor2Detect) statusBola = "Bola na linha";
 
-    // Envia dados ao ThingSpeak
-    HTTPClient http;
-    String url = String(server) + "/update?api_key=" + apiKey +
-                 "&field1=" + String(dist1) +
-                 "&field2=" + String(dist2);
-    http.begin(url);
-    int httpCode = http.GET();
+    client.publish(topic_dist1, String(distance1).c_str());
+    client.publish(topic_dist2, String(distance2).c_str());
+    client.publish(topic_status, statusBola.c_str());
 
-    if (httpCode > 0) {
-      Serial.println("Dados enviados ao ThingSpeak.");
-    } else {
-      Serial.print("Erro ao enviar dados. Código HTTP: ");
-      Serial.println(httpCode);
-    }
-    http.end();
-  } else {
-    Serial.println("WiFi não conectado. Tentando reconectar...");
+    Serial.print("Dist1: "); Serial.print(distance1);
+    Serial.print(" | Dist2: "); Serial.print(distance2);
+    Serial.print(" | Status: "); Serial.println(statusBola);
+
+    lastPub = now;
   }
-
-  delay(1000); 
 }

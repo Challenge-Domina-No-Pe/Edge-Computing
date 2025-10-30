@@ -1,90 +1,101 @@
-# 📘 Projeto Passa a Bola
-
+# ⚽ Projeto Passa a Bola - Versão Servidor Web
 
 ## 📝 Descrição do Projeto
-O projeto **Passa a Bola** tem como objetivo monitorar se a bola sai ou não de uma quadra esportiva, utilizando sensores ultrassônicos para detectar a passagem da bola em pontos estratégicos da linha.  
 
-A lógica é simples:  
-- Se a bola passar pelo **sensor da esquerda (Sensor 2)** e não retornar para o **sensor da direita (Sensor 1)**, significa que a bola saiu da quadra. Nesse caso, **LED e buzzer são ativados** para indicar a saída.  
-- Caso a bola volte e passe novamente pelo **sensor da direita (Sensor 1)**, o alerta é desativado.  
+O projeto **Passa a Bola** tem como objetivo detectar se uma bola está **dentro**, **na linha**, ou **fora de uma quadra**, utilizando **dois sensores ultrassônicos HC-SR04** conectados a um **ESP32**.
 
-Além disso, os dados de cada sensor são enviados em tempo real para o **ThingSpeak**, permitindo acompanhamento remoto.  
+Diferente da versão anterior (com LED e buzzer), esta versão envia os dados dos sensores diretamente para um **servidor web local**, que exibe as informações em tempo real em uma página HTML estilizada.
+
+A lógica de detecção é:
+
+* ✅ **Bola em campo:** quando nenhum sensor detecta a bola.
+* ⚪ **Na linha:** quando os dois sensores detectam a bola simultaneamente.
+* ❌ **Fora do campo:** quando apenas o sensor 2 detecta a bola e o sensor 1 não.
 
 ---
 
 ## 🏗️ Arquitetura Proposta
 
-### Diagrama (simplificado em texto)
+### Diagrama Simplificado
+
 ```
                 ┌────────────┐
-                │   Sensor 1 │  (Direita)
+                │  Sensor 1  │  (Direita)
                 └──────┬─────┘
                        │
-                       │
                 ┌──────┴─────┐
-                │   ESP32    │─── Wi-Fi ───> ThingSpeak
+                │   ESP32    │─── Wi-Fi ───> Servidor Web Local
                 └──────┬─────┘
                        │
-          ┌────────────┴────────────┐
-          │                         │
-     ┌────┴─────┐              ┌────┴─────┐
-     │   LED    │              │  Buzzer  │
-     └──────────┘              └──────────┘
-                       │
                 ┌──────┴─────┐
-                │   Sensor 2 │  (Esquerda)
+                │  Sensor 2  │  (Esquerda)
                 └────────────┘
 ```
 
 ### Explicação
-- O **ESP32** é o núcleo do sistema, recebendo leituras dos dois sensores ultrassônicos.  
-- Quando identificado que a bola saiu, ele **aciona LED e buzzer** como alerta local.  
-- Simultaneamente, envia os dados para a nuvem via **ThingSpeak**, permitindo análise remota.  
+
+* O **ESP32** lê continuamente os valores dos sensores ultrassônicos.
+* Ele envia as informações para o **servidor web**, que as exibe de forma clara e dinâmica em uma interface HTML.
+* Assim, é possível visualizar o estado da bola **em tempo real** pelo navegador.
 
 ---
 
 ## 📦 Recursos Necessários
-- 1x **ESP32**  
-- 2x **Sensores ultrassônicos HC-SR04**  
-- 1x **LED**  
-- 1x **Buzzer**  
-- Protoboard + jumpers  
-- Conexão Wi-Fi  
+
+* 1x **ESP32**
+* 2x **Sensores Ultrassônicos HC-SR04**
+* Protoboard e jumpers
+* Conexão Wi-Fi
+* Um **servidor local** (Node.js, Python Flask ou similar) para receber e exibir os dados
 
 ---
 
 ## 🚀 Instruções de Uso
-1. Monte o circuito conforme o diagrama de arquitetura.  
-2. Carregue o código no ESP32 utilizando a **Arduino IDE**.  
-3. Configure a conexão Wi-Fi e a chave da API do **ThingSpeak** no código:  
+
+1. Monte o circuito de acordo com o diagrama acima.
+2. Carregue o código no ESP32 utilizando a **Arduino IDE** ou **Wokwi**.
+3. Configure no código os dados da sua rede Wi-Fi e o **endereço do servidor**:
+
    ```cpp
    const char* ssid = "SEU_WIFI";
    const char* password = "SUA_SENHA";
-   const char* apiKey = "SUA_API_KEY";
+   const char* server = "http://SEU_IP:PORTA";
    ```
-4. Abra o **Serial Monitor** para visualizar as leituras em tempo real.  
-5. Acompanhe os dados também pelo painel do **ThingSpeak**.  
-6. Quando a bola sair da quadra:  
-   - **LED acende**  
-   - **Buzzer toca**  
-7. Quando a bola voltar:  
-   - **LED apaga**  
-   - **Buzzer desliga**  
+4. No computador, inicie o **servidor local** (o que exibe o HTML).
+5. Acesse a página HTML no navegador para visualizar o status da bola em tempo real.
+
+---
+
+## 🌐 Página Web
+
+A página exibe:
+
+* Estado atual da bola:
+
+  * “**Bola em campo**”
+  * “**Na linha**”
+  * “**Fora do campo**”
+* Dados de distância dos sensores.
+
+O visual foi aprimorado para uma interface moderna e responsiva, facilitando o acompanhamento.
 
 ---
 
 ## 👥 Integrantes
-- Vítor Silva Borsato RM:561805   
-- João Pedro Godinho Passiani RM:561602​
-- Gabriel Molinari Droppa RM:562082
-- Isabela de Deus RM: 565988
+
+* **Vítor Silva Borsato** — RM: 561805
+* **João Pedro Godinho Passiani** — RM: 561602
+* **Gabriel Molinari Droppa** — RM: 562082
+* **Isabela de Deus** — RM: 565988
 
 ---
 
 ## 🎥 Vídeo de Demonstração
-👉 [Assista ao vídeo aqui](https://youtu.be/JevcnQfe5Do)
+
+👉 [Assista ao vídeo aqui](https://youtu.be/QBNvP2MKzi4)
 
 ---
 
-## 🎮 Simulador do Wokwi
-👉 [Clique aqui para testar](https://wokwi.com/projects/441173414311135233)
+## 🧩 Simulador Wokwi
+
+👉 [Clique aqui para testar](https://wokwi.com/projects/446099622700027905)

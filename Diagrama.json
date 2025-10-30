@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "editor": "wokwi",
+  "parts": [
+    { "type": "wokwi-esp32-devkit-v1", "id": "esp", "top": 81.5, "left": -14.6, "attrs": {} },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "ultrasonic1",
+      "top": 97.5,
+      "left": 207.1,
+      "attrs": { "distance": "400" }
+    },
+    {
+      "type": "wokwi-buzzer",
+      "id": "bz1",
+      "top": -26.4,
+      "left": 232.2,
+      "attrs": { "volume": "0.1" }
+    },
+    { "type": "wokwi-led", "id": "led1", "top": 15.6, "left": 320.6, "attrs": { "color": "red" } },
+    {
+      "type": "wokwi-resistor",
+      "id": "r1",
+      "top": 80.75,
+      "left": 201.6,
+      "attrs": { "value": "220" }
+    },
+    {
+      "type": "wokwi-hc-sr04",
+      "id": "ultrasonic2",
+      "top": 87.9,
+      "left": 427.9,
+      "attrs": { "distance": "400" }
+    }
+  ],
+  "connections": [
+    [ "esp:TX0", "$serialMonitor:RX", "", [] ],
+    [ "esp:RX0", "$serialMonitor:TX", "", [] ],
+    [ "ultrasonic1:GND", "esp:GND.1", "black", [ "v105.6", "h-135.6", "v-134.4" ] ],
+    [ "ultrasonic1:VCC", "esp:3V3", "red", [ "v57.6", "h-124.8", "v-67.2" ] ],
+    [ "esp:D5", "ultrasonic1:TRIG", "green", [ "h23.5", "v167.9", "h125.2" ] ],
+    [ "esp:D18", "ultrasonic1:ECHO", "green", [ "h42.7", "v206.3", "h115.2" ] ],
+    [ "bz1:1", "esp:GND.1", "black", [ "v9.6", "h-86.4", "v57.6" ] ],
+    [ "bz1:2", "esp:D4", "green", [ "v9.6", "h-106", "v57.6" ] ],
+    [ "led1:C", "esp:GND.1", "black", [ "h-153.2", "v91.4" ] ],
+    [ "led1:A", "r1:2", "green", [ "v0" ] ],
+    [ "r1:1", "esp:D2", "green", [ "v115.2", "h-96", "v10.3" ] ],
+    [ "ultrasonic2:VCC", "esp:3V3", "gray", [ "v0" ] ],
+    [ "ultrasonic2:GND", "esp:GND.1", "green", [ "v96", "h-385.2", "v-28.8" ] ],
+    [ "ultrasonic2:TRIG", "esp:D19", "white", [ "v76.8", "h-346", "v-105.6", "h-9.6" ] ],
+    [ "ultrasonic2:ECHO", "esp:D21", "white", [ "v86.4", "h-365.6", "v-48" ] ]
+  ],
+  "dependencies": {}
+}
